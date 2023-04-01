@@ -75,24 +75,31 @@ def get_para_name_q_phrases(q_phrase, para_name_list, pred_tag_seq, pred_tag_sco
 
 
 def get_root_activity(node_DB):
-    for activity_id in node_DB['activity']:
-        if node_DB['activity'][activity_id]['IsHome'] == 'True':
-            return activity_id, node_DB['activity'][activity_id]['ActivityName']
-    return '-', '-'
+    return next(
+        (
+            (activity_id, node_DB['activity'][activity_id]['ActivityName'])
+            for activity_id in node_DB['activity']
+            if node_DB['activity'][activity_id]['IsHome'] == 'True'
+        ),
+        ('-', '-'),
+    )
 
 
 def get_available_actions(activity_name, node_DB, para_DB, te_p_DB):
-    action_desc_set = set()
     action_next_ids = set()
-    for action_desc in node_DB['action']:
-        if action_desc.startswith(activity_name+'->'):
-            action_desc_set.add(action_desc)
-
-    if len(action_desc_set) > 0:
+    if action_desc_set := {
+        action_desc
+        for action_desc in node_DB['action']
+        if action_desc.startswith(f'{activity_name}->')
+    }:
         for action_desc in action_desc_set:
-              for action_id in node_DB['action'][action_desc]:
-                  if action_desc +'#'+ get_action_name(para_DB, action_id).replace('\'', ' ') in te_p_DB:
-                      action_next_ids.add(action_id)
+            for action_id in node_DB['action'][action_desc]:
+                if (
+                    f'{action_desc}#'
+                    + get_action_name(para_DB, action_id).replace('\'', ' ')
+                    in te_p_DB
+                ):
+                    action_next_ids.add(action_id)
     return list(action_next_ids)
 
 
@@ -111,15 +118,7 @@ def get_available_action_parameters(q_phrase, selected_action_id, node_DB, para_
             action_parameters.add((preprocess_text(para['description']), para['para_id'], 0))
 
     para_list = {}
-    if len(action_parameters) == 0:
-        if action_name[1] in para_dom:
-            print("in para dom..")
-            for phrase in para_dom[action_name[1]]:
-                if action_name[0] in para_list:
-                    para_list[action_name[0]].add((phrase.lower(), 1))
-                else:
-                    para_list[action_name[0]] = {(phrase.lower(), 1)}
-    else:
+    if action_parameters:
         for para_name, para_id, para_type in action_parameters:
 
             if para_name.strip() in {'reservation date', 'date', 'check out', 'check in',
@@ -143,28 +142,48 @@ def get_available_action_parameters(q_phrase, selected_action_id, node_DB, para_
                         else:
                             para_list[para_name] = {(wd, para_type)}
 
+    elif action_name[1] in para_dom:
+        print("in para dom..")
+        for phrase in para_dom[action_name[1]]:
+            if action_name[0] in para_list:
+                para_list[action_name[0]].add((phrase.lower(), 1))
+            else:
+                para_list[action_name[0]] = {(phrase.lower(), 1)}
     return para_list
 
 
 def get_action_desc(node_DB, action_id):
-    for action_desc in node_DB['action']:
-        if action_id in node_DB['action'][action_desc]:
-            return action_desc
-    return '-'
+    return next(
+        (
+            action_desc
+            for action_desc in node_DB['action']
+            if action_id in node_DB['action'][action_desc]
+        ),
+        '-',
+    )
 
 
 def get_action_name(para_DB, action_id):
-    for para in para_DB[action_id]:
-        if para['Type'] == 'ACTION':
-            return para['description']
-    return '-'
+    return next(
+        (
+            para['description']
+            for para in para_DB[action_id]
+            if para['Type'] == 'ACTION'
+        ),
+        '-',
+    )
 
 
 def get_activity_id(node_DB, activity_name):
-    for activity_id in node_DB['activity']:
-        if node_DB['activity'][activity_id]['ActivityName'] == activity_name:
-            return activity_id
-    return '-'
+    return next(
+        (
+            activity_id
+            for activity_id in node_DB['activity']
+            if node_DB['activity'][activity_id]['ActivityName']
+            == activity_name
+        ),
+        '-',
+    )
 
 
 def extract_parameters(para_str):
@@ -194,8 +213,6 @@ def evaluate_performance(result_DB, result_file):
     for res_tup in result_DB:
 
         pred_path = res_tup[0]
-        st_node = res_tup[1]
-        gt_list = res_tup[2]
         reject = res_tup[3]
 
         if reject == 1:                # action not predicted
@@ -207,12 +224,14 @@ def evaluate_performance(result_DB, result_file):
 
             para_res.append(0)
             para_res_prec_exact.append(0)
-        else:                                 # action predicted
+        else:                         # action predicted
             pred_action_name = preprocess_text(pred_path.split("{")[0].split(',')[1].replace('\'', ' ').strip())
             pred_para_dict = {}
             if len(pred_path.split("{")) > 1:
                 pred_para_dict = extract_parameters(pred_path.split("{")[1].replace('}', ''))
 
+            st_node = res_tup[1]
+            gt_list = res_tup[2]
             gold_action_para_dict = get_gold_act_para_list(st_node, gt_list)
 
             if pred_action_name in gold_action_para_dict:
@@ -271,28 +290,28 @@ def evaluate_performance(result_DB, result_file):
                para_res_prec_exact.append(0)
 
     result_file.write("\n ======== \n")
-    if len(act_res) > 0:
+    if act_res:
         print("Overall act accuracy: ", np.mean(act_res))
-        result_file.write("Overall act accuracy: "+str(np.mean(act_res)))
+        result_file.write(f"Overall act accuracy: {str(np.mean(act_res))}")
     else:
         print("Overall act accuracy: 0.0")
         result_file.write("Overall act accuracy: 0.0 ")
     result_file.write("\n")
 
-    if len(para_res_prec) > 0:
+    if para_res_prec:
         para_prec_final = np.mean(para_res_prec)
         print("Overall parameter Prec: ", para_prec_final)
-        result_file.write("Overall parameter Prec: "+str(para_prec_final))
+        result_file.write(f"Overall parameter Prec: {str(para_prec_final)}")
     else:
         para_prec_final = 0.0
         print("Overall parameter Prec: 0.0")
         result_file.write("Overall parameter Prec: 0.0")
     result_file.write("\n")
 
-    if len(para_res_prec) > 0:
+    if para_res_prec:
         para_rec_final = np.mean(para_res_rec)
         print("Overall parameter rec: ", para_rec_final)
-        result_file.write("Overall parameter rec: "+ str(para_rec_final))
+        result_file.write(f"Overall parameter rec: {str(para_rec_final)}")
     else:
         para_rec_final = 0.0
         print("Overall parameter rec: 0.0")
@@ -302,23 +321,23 @@ def evaluate_performance(result_DB, result_file):
     if para_prec_final > 0.0 and para_rec_final > 0.0:
         para_f1 = (2.0 * para_prec_final * para_rec_final) / (para_prec_final + para_rec_final)
         print("Overall parameter F1: ", para_f1)
-        result_file.write("Overall parameter F1: "+str(para_f1))
+        result_file.write(f"Overall parameter F1: {str(para_f1)}")
     else:
         print("Overall parameter F1: 0.0")
         result_file.write("Overall parameter F1: 0.0")
     result_file.write("\n")
 
-    if len(para_res) > 0:
+    if para_res:
         print("parameter exact match acc: ", np.mean(para_res))
-        result_file.write("parameter EMA: "+str(np.mean(para_res)))
+        result_file.write(f"parameter EMA: {str(np.mean(para_res))}")
     else:
         print("parameter exact match acc: ", 0.0)
         result_file.write("parameter EMA: 0.0")
     result_file.write("\n")
 
-    if len(para_res_prec_exact) > 0:
+    if para_res_prec_exact:
         print("parameter exact Prec acc: ", np.mean(para_res_prec_exact))
-        result_file.write("PA-100: "+str(np.mean(para_res_prec_exact)))
+        result_file.write(f"PA-100: {str(np.mean(para_res_prec_exact))}")
     else:
         print("parameter exact Prec acc: ", 0.0)
         result_file.write("PA-100: 0.0")

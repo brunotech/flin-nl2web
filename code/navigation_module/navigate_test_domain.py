@@ -27,7 +27,7 @@ def navigate_domain(nsm_model, q_phrase, node_DB, para_DB, para_dom, vocab_to_id
         action_next_list = get_available_actions(activity_name, node_DB, para_DB, te_p_DB)
         action_next_list = list(set(action_next_list).difference(explored_actions))
 
-        if len(action_next_list) == 0:
+        if not action_next_list:
             break
 
         # create test set ...
@@ -43,14 +43,14 @@ def navigate_domain(nsm_model, q_phrase, node_DB, para_DB, para_dom, vocab_to_id
 
         # score actions ...
         action_scores = {}
-        i = 0
-        for action_id in action_next_list:
+        for i, action_id in enumerate(action_next_list):
             action_desc = get_action_desc(node_DB, action_id)
             action_name = get_action_name(para_DB, action_id)
 
-            action_scores[action_id] = (action_desc + '#' + action_name, 1.0 - act_pred_scores[i])
-            i += 1
-
+            action_scores[action_id] = (
+                f'{action_desc}#{action_name}',
+                1.0 - act_pred_scores[i],
+            )
         if verbose:
             print("Query: ", q_phrase)
             print('pred_score:', act_pred_scores)
@@ -124,11 +124,8 @@ def navigate_domain(nsm_model, q_phrase, node_DB, para_DB, para_dom, vocab_to_id
                         para_pred_scores_match = nsm_model.predict_para_match(test_X_para_batch_matching)
 
                         para_score_dict = {}
-                        para_index = 0
-                        for para_val, para_type in para_val_list2:
+                        for para_index, (para_val, para_type) in enumerate(para_val_list2):
                             para_score_dict[para_val] = 1.0 - list(para_pred_scores_match)[para_index]
-                            para_index += 1
-
                         if verbose:
                             print('Parameter scores for ', para_name)
                             print('Extracted phrase ', q_para_phrase)
@@ -162,14 +159,14 @@ def navigate_domain(nsm_model, q_phrase, node_DB, para_DB, para_dom, vocab_to_id
                 else:
                    para_score.append(1.0)
 
-            if len(para_score) > 0:
+            if para_score:
                 mean_para_score = np.mean(para_score)
 
                 net_score = 0.4 * action_scores[action_id][1] + 0.6 * mean_para_score
                 action_net_scores.append((action_scores[action_id][0], para_dict, net_score, action_id, mean_para_score,
                                           action_scores[action_id][1]))
 
-        if len(action_net_scores) > 0:
+        if action_net_scores:
             action_net_scores.sort(key=itemgetter(2), reverse=True)
 
             print('action_net_scores:', action_net_scores)
@@ -184,15 +181,21 @@ def navigate_domain(nsm_model, q_phrase, node_DB, para_DB, para_dom, vocab_to_id
                 selected_action_id = action_net_scores[0][3]
                 selected_pred_para_scores = action_para_pred[selected_action_id]
             else:
-                selected_action_desc = activity_name+'->END'
+                selected_action_desc = f'{activity_name}->END'
                 selected_action_name = 'STOP'
                 selected_pred_para = {}
                 selected_action_id = -1
                 selected_pred_para_scores = {}
 
             if selected_action_name != 'STOP':
-                navigation_path[1].append(selected_action_desc + "#" +
-                                       selected_action_name + str(selected_pred_para).replace('\"', '\'').replace('\':', '\'='))
+                navigation_path[1].append(
+                    (
+                        f"{selected_action_desc}#{selected_action_name}"
+                        + str(selected_pred_para)
+                        .replace('\"', '\'')
+                        .replace('\':', '\'=')
+                    )
+                )
                 navigation_path_para_scores.append(selected_pred_para_scores)
                 navigation_path_id.append(selected_action_id)
                 explored_actions.add(selected_action_id)

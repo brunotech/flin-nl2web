@@ -30,8 +30,7 @@ def load_data(args):
             print("labeled data dump does not exit!")
             exit(0)
 
-        data_vec = prepare_vectorized_dataset(train_trace_id, dataset_dump)
-        return data_vec
+        return prepare_vectorized_dataset(train_trace_id, dataset_dump)
 
 
 def load_model(args, data_vec_dump):
@@ -74,7 +73,9 @@ def load_model(args, data_vec_dump):
 
     # 'Saver' op to save and restore all the variables
     saver = tf.train.Saver()
-    model_exists = load_or_initialize_model(sess, saver, str(train_trace_id) + '_model', model_path)
+    model_exists = load_or_initialize_model(
+        sess, saver, f'{str(train_trace_id)}_model', model_path
+    )
     model.print_variable_names()
 
     if not model_exists:

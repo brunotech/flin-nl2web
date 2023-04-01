@@ -8,7 +8,13 @@ def encode_phrase_char(bert_module, char_embed_encoder, input_seq, seq_len, bert
                                     seq_len, max_seq_len['word'], embed_dim, args, 'char_rnn_encoding_para2')
 
     if args['encoder_type'] == 'rnn_bi' or args['pred_model_type'] == 'rnn_uni':
-        _, phrase_vec = rnn_encoding_layer(dropout, phrase_char_emb_inputs, args, embed_dim, layer_name+'_char2')
+        _, phrase_vec = rnn_encoding_layer(
+            dropout,
+            phrase_char_emb_inputs,
+            args,
+            embed_dim,
+            f'{layer_name}_char2',
+        )
     elif args['encoder_type'] == 'cnn':
         phrase_vec = cnn_encoding_layer(dropout, phrase_char_emb_inputs, args, embed_dim, max_seq_len['para_name'])
     else:

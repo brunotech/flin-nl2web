@@ -27,24 +27,26 @@ def get_next_test_batch_action(data, itr, batch_size):
         add_bert_input(bert_X_pos_action_name, pos_act_bert_input[1])
         add_bert_input(bert_X_pos_act_para_names, pos_act_bert_input[2])
 
-    action_batch = {'query': np.array(batch_X_q),
-                    'pos_act_name': np.array(batch_X_pos_act_name),
-                    'pos_act_para_names': np.array(batch_X_pos_act_para_names),
-
-                    'bert_in_query': (np.array(bert_X_query['input_ids']),
-                                      np.array(bert_X_query['input_mask']),
-                                      np.array(bert_X_query['segment_ids'])),
-
-                    'bert_in_pos_act_name': (np.array(bert_X_pos_action_name['input_ids']),
-                                                np.array(bert_X_pos_action_name['input_mask']),
-                                                np.array(bert_X_pos_action_name['segment_ids'])),
-                    'bert_in_pos_act_para_names': (np.array(bert_X_pos_act_para_names['input_ids']),
-                                                   np.array(bert_X_pos_act_para_names['input_mask']),
-                                                   np.array(bert_X_pos_act_para_names['segment_ids'])),
-
-                    }
-
-    return action_batch
+    return {
+        'query': np.array(batch_X_q),
+        'pos_act_name': np.array(batch_X_pos_act_name),
+        'pos_act_para_names': np.array(batch_X_pos_act_para_names),
+        'bert_in_query': (
+            np.array(bert_X_query['input_ids']),
+            np.array(bert_X_query['input_mask']),
+            np.array(bert_X_query['segment_ids']),
+        ),
+        'bert_in_pos_act_name': (
+            np.array(bert_X_pos_action_name['input_ids']),
+            np.array(bert_X_pos_action_name['input_mask']),
+            np.array(bert_X_pos_action_name['segment_ids']),
+        ),
+        'bert_in_pos_act_para_names': (
+            np.array(bert_X_pos_act_para_names['input_ids']),
+            np.array(bert_X_pos_act_para_names['input_mask']),
+            np.array(bert_X_pos_act_para_names['segment_ids']),
+        ),
+    }
 
 
 def get_next_test_batch_para_tagging(data, itr, batch_size):
@@ -125,22 +127,22 @@ def get_next_test_batch_para_matching(data, itr, batch_size):
         add_bert_input(bert_X_pos_para_name, para_bert_input[0])
         add_bert_input(bert_X_pos_para_val, para_bert_input[1])
 
-    para_batch = {'q_para_val': np.array(batch_X_q_para_val),
-                  'q_para_val_char': np.array(batch_X_q_para_val_char),
-
-                  'para_type': np.array(batch_X_para_type),
-                  'pos_para_name': np.array(batch_X_pos_para_name),
-
-                  'pos_para_val': np.array(batch_X_pos_para_val),
-                  'pos_para_val_char': np.array(batch_X_pos_para_val_char),
-                  'pos_ext_match_score': np.array(batch_X_pos_ext_match_score),
-
-                  'bert_in_pos_para_name': (np.array(bert_X_pos_para_name['input_ids']),
-                                            np.array(bert_X_pos_para_name['input_mask']),
-                                            np.array(bert_X_pos_para_name['segment_ids'])),
-                  'bert_in_pos_para_val': (np.array(bert_X_pos_para_val['input_ids']),
-                                           np.array(bert_X_pos_para_val['input_mask']),
-                                           np.array(bert_X_pos_para_val['segment_ids'])),
-                  }
-
-    return para_batch
+    return {
+        'q_para_val': np.array(batch_X_q_para_val),
+        'q_para_val_char': np.array(batch_X_q_para_val_char),
+        'para_type': np.array(batch_X_para_type),
+        'pos_para_name': np.array(batch_X_pos_para_name),
+        'pos_para_val': np.array(batch_X_pos_para_val),
+        'pos_para_val_char': np.array(batch_X_pos_para_val_char),
+        'pos_ext_match_score': np.array(batch_X_pos_ext_match_score),
+        'bert_in_pos_para_name': (
+            np.array(bert_X_pos_para_name['input_ids']),
+            np.array(bert_X_pos_para_name['input_mask']),
+            np.array(bert_X_pos_para_name['segment_ids']),
+        ),
+        'bert_in_pos_para_val': (
+            np.array(bert_X_pos_para_val['input_ids']),
+            np.array(bert_X_pos_para_val['input_mask']),
+            np.array(bert_X_pos_para_val['segment_ids']),
+        ),
+    }

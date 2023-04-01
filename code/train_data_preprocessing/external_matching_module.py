@@ -19,7 +19,7 @@ class Matcher(abc.ABC):
 
     def __init__(self, resource_file_list=None, cache_size=1000000):
         self.resource_files = resource_file_list
-        self.score_cache = dict()
+        self.score_cache = {}
         self.CACHE_SIZE = cache_size
 
     @abc.abstractmethod
@@ -32,27 +32,19 @@ class Matcher(abc.ABC):
 
     @staticmethod
     def get_score(src_v, tgt_v):
-        if any(tgt_v) and any(src_v):
-            node_score = Matcher.sim_func(src_v, tgt_v)
-        else:
-            node_score = 0
+        node_score = Matcher.sim_func(src_v, tgt_v) if any(tgt_v) and any(src_v) else 0
         if math.isnan(node_score):
             node_score = 0
         return node_score
 
     def get_match_score(self, src_str, tgt_str):
         str_pair = (src_str, tgt_str)
-        # if it's in the cache don't invoke the matcher
         if str_pair in self.score_cache:
             return self.score_cache[str_pair]
-        else:
-            if src_str and tgt_str:
-                score = self._match_score(src_str, tgt_str)
-            else:
-                score = 0
-            self._may_clear_cache(self.score_cache)
-            self.score_cache[str_pair] = score
-            return score
+        score = self._match_score(src_str, tgt_str) if src_str and tgt_str else 0
+        self._may_clear_cache(self.score_cache)
+        self.score_cache[str_pair] = score
+        return score
 
     def _may_clear_cache(self, cache):
         if len(cache) > self.CACHE_SIZE:
@@ -68,7 +60,7 @@ class LexicalMatcher(Matcher):
         super(LexicalMatcher, self).__init__()
 
         if name not in LexicalMatcher.NAMES:
-            raise ValueError('{} not supported!'.format(name))
+            raise ValueError(f'{name} not supported!')
         # print('initializing {} matcher...'.format(name))
         start = time.time()
         self.name = name
@@ -83,20 +75,19 @@ class LexicalMatcher(Matcher):
         print('{} matcher initialized, took {:4.4f} s'.format(name, time.time() - start))
 
     def _match_score(self, src_str, tgt_str):
-        if self.name == 'lexical':
-            scores = OrderedDict()
-            for n in LexicalMatcher.NAMES[1:]:
-                scores[n] = self.one_match_score(src_str, tgt_str, n)
-            return sum(scores.values())
-        else:
+        if self.name != 'lexical':
             return self.one_match_score(src_str, tgt_str, self.name)
+        scores = OrderedDict()
+        for n in LexicalMatcher.NAMES[1:]:
+            scores[n] = self.one_match_score(src_str, tgt_str, n)
+        return sum(scores.values())
 
     def one_match_score(self, src_str, tgt_str, name):
         # import textdistance
         # td_matcher = getattr(textdistance, self.name)
         # return td_matcher.normalized_similarity(src_str, tgt_str)
 
-        if name == 'jaccard' or name == 'cosine':
+        if name in ['jaccard', 'cosine']:
             # stemming is not a good idea
             # ps = PorterStemmer()
             # stem1 = ps.stem(str1)
@@ -107,16 +98,9 @@ class LexicalMatcher(Matcher):
             c = a.intersection(b)
             if name == 'jaccard':
                 return float(len(c)) / (len(a) + len(b) - len(c))
-            else:
-                norm1 = len(a) ** (1. / 2)
-                norm2 = len(b) ** (1. / 2)
-                if not norm1 * norm2:
-                    return 0
-                else:
-                    return len(c) / (norm1 * norm2)
-        # elif name == 'cosine':
-        #     tf_idf = self.tf_idf_vec.fit_transform([src_str, tgt_str])
-        #     return (tf_idf * tf_idf.T).A[0, 1]
+            norm1 = len(a) ** (1. / 2)
+            norm2 = len(b) ** (1. / 2)
+            return len(c) / (norm1 * norm2) if norm1 * norm2 else 0
         else:
             score = self.td_matchers[name](src_str, tgt_str)
             if name == 'levenshtein_distance':
@@ -124,7 +108,7 @@ class LexicalMatcher(Matcher):
             return score
 
 
-matcher_dict = dict()
+matcher_dict = {}
 NAMES = ['universal', 'hybrid', 'semantic', 'lexical',
          'match_pyramid', 'cdssm', 'word2vec',
          'jaccard', 'levenshtein_distance', 'cosine', 'jaro_winkler']
@@ -160,10 +144,7 @@ def get_custom_match_score(q_phrase, cand_phrase):
         match_score = get_partial_match_score(wd, q_phrase)
         #print(wd, match_score)
         score_list[wd] = match_score
-    if len(score_list) > 0:
-        return 1.0 - np.mean(list(score_list.values()))
-    else:
-        return 1.0
+    return 1.0 - np.mean(list(score_list.values())) if score_list else 1.0
 
 
 def get_fuzzy_matching(source_phrase, target_value):

@@ -85,11 +85,10 @@ def get_gold_labels_tagger(q_phrase, para_val_sample, max_seq_len):
     label_vec = [0] * len(q_phrase.split())
     index_list = []
     for wd_id, q_word in enumerate(q_word_list):
-        if q_word == para_val_sample_word_list[0]:
-             if ' '.join(q_word_list[wd_id:]).startswith(para_val_sample):
-                 for j in range(len(para_val_sample_word_list)):
-                     index_list.append(wd_id+j)
-
+        if q_word == para_val_sample_word_list[0] and ' '.join(
+            q_word_list[wd_id:]
+        ).startswith(para_val_sample):
+            index_list.extend(wd_id+j for j in range(len(para_val_sample_word_list)))
     for pos_id in index_list:
         label_vec[pos_id] = 1
     assert len(label_vec) == len(q_phrase.split())
@@ -128,7 +127,7 @@ def get_query_n_grams(q_phrase, max_n=3, min_n=1):
     exclueded_pos_set = { 'VB', 'VBD', 'VBG', 'VBZ'}
 
     q_uni_bigram_phrases = set()
-    for n_gr in range(min_n, max_n+1, 1):
+    for n_gr in range(min_n, max_n+1):
         n_gram_list = list(ngrams(q_words, n_gr))
 
         for tup in n_gram_list:
@@ -142,17 +141,22 @@ def get_query_n_grams(q_phrase, max_n=3, min_n=1):
 
 def pad_arr_seq(curr_seq, max_len, padding_seq):
 
-    for i in range(max_len-len(curr_seq)):
-         curr_seq.append(padding_seq)
+    for _ in range(max_len-len(curr_seq)):
+        curr_seq.append(padding_seq)
     assert len(curr_seq) == max_len
     return curr_seq
 
 
 def get_activity_id(node_DB, activity_name):
-    for activity_id in node_DB['activity']:
-        if node_DB['activity'][activity_id]['ActivityName'] == activity_name:
-            return activity_id
-    return '-'
+    return next(
+        (
+            activity_id
+            for activity_id in node_DB['activity']
+            if node_DB['activity'][activity_id]['ActivityName']
+            == activity_name
+        ),
+        '-',
+    )
 
 
 def preprocess_text(phrase):
@@ -228,18 +232,9 @@ def get_vectorized_phrase(phrase, vocab_to_id, max_seq_len):
 
 def extract_noun_phrases(sentence):
     doc = nlp(sentence)
-    noun_phrases = set()
-
-    exclude_set = set()
-    for token in doc:
-        if token.pos_ in {'PRON'}:
-           exclude_set.add(token.text)
-
-    for chunk in doc.noun_chunks:
-        noun_phrases.add(chunk.text)
-
-    noun_phrases = noun_phrases.difference(exclude_set)
-    return noun_phrases
+    exclude_set = {token.text for token in doc if token.pos_ in {'PRON'}}
+    noun_phrases = {chunk.text for chunk in doc.noun_chunks}
+    return noun_phrases.difference(exclude_set)
 
 
 def get_candidate_query_phrases(sentence):

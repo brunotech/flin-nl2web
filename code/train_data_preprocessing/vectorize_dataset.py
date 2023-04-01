@@ -19,10 +19,9 @@ def get_vectorized_dataset(data_pos_neg, vocab_to_id, p_DB):
     para_data_tag = []
     para_data_match = []
 
-    count = 0
     total_queries = len(data_pos_neg)
 
-    for q_phrase, act_path_seq, para_path_seq, un_inst_para_name_set in data_pos_neg:
+    for count, (q_phrase, act_path_seq, para_path_seq, un_inst_para_name_set) in enumerate(data_pos_neg, start=1):
 
         for action_tr_tup in act_path_seq:
             act_data_tuple_vec = get_act_data_tuple_vec(q_phrase, action_tr_tup, vocab_to_id, p_DB)
@@ -40,10 +39,8 @@ def get_vectorized_dataset(data_pos_neg, vocab_to_id, p_DB):
             para_data_tuple_vec_1 = get_para_data_tuple_vec_tagging(q_phrase, para_tr_tup, vocab_to_id)
             para_data_tag.append(para_data_tuple_vec_1)
 
-        count += 1
-
         if count % 400 == 0:
-            print ('{} of {} queries have been vectorized'.format(count, total_queries))
+            print(f'{count} of {total_queries} queries have been vectorized')
 
     return (act_data, para_data_tag, para_data_match)
 
@@ -62,14 +59,18 @@ def get_action_vectors(action_name, action, para_name_set, p_DB, vocab_to_id):
 
         action_para_dom_values_vec = []  # 15 x 7
         if action in p_DB and para_name in p_DB[action]:
-            dom_set = set([fixed_val for fixed_val, _, para_type in p_DB[action][para_name]])
-            if len(dom_set) > 0:
+            if dom_set := {
+                fixed_val
+                for fixed_val, _, para_type in p_DB[action][para_name]
+            }:
                 dom_sample = np.random.choice(list(dom_set), min(len(dom_set), max_no_dict['domain_size_per_para']),
                                               replace=False)
-                for dom_val_phrase in dom_sample:
-                    action_para_dom_values_vec.append(
-                        get_vectorized_phrase(dom_val_phrase, vocab_to_id, max_seq_len['para_val']))
-
+                action_para_dom_values_vec.extend(
+                    get_vectorized_phrase(
+                        dom_val_phrase, vocab_to_id, max_seq_len['para_val']
+                    )
+                    for dom_val_phrase in dom_sample
+                )
         action_para_dom_values_vec = pad_arr_seq(action_para_dom_values_vec,
                                                    max_no_dict['domain_size_per_para'],
                                                    [0] * max_seq_len['para_val'])
@@ -102,7 +103,7 @@ def get_act_data_tuple_vec(q_phrase, action_tr_tup, vocab_to_id, p_DB):
     bert_in_query = get_vectorized_bert_input_phrase(q_phrase, max_seq_len['bert_query'])
     bert_in_pos_action_name = get_vectorized_bert_input_phrase(pos_action_name, max_seq_len['bert_action_name'])
 
-    pos_act_para_names_str = ';'.join([para_name for para_name in pos_para_name_set])
+    pos_act_para_names_str = ';'.join(list(pos_para_name_set))
     bert_in_pos_action_para_names = get_vectorized_bert_input_phrase(pos_act_para_names_str, max_seq_len['bert_para_names_str'])
 
     bert_in_pos = (bert_in_query, bert_in_pos_action_name, bert_in_pos_action_para_names)
@@ -124,7 +125,7 @@ def get_act_data_tuple_vec(q_phrase, action_tr_tup, vocab_to_id, p_DB):
         ''' === neg bert input p1 ====='''
         bert_in_neg_action_name = get_vectorized_bert_input_phrase(neg_action_name, max_seq_len['bert_action_name'])
 
-        neg_act_para_names_str = ';'.join([neg_para_name for neg_para_name in neg_para_name_set])
+        neg_act_para_names_str = ';'.join(list(neg_para_name_set))
         bert_in_neg_action_para_names = get_vectorized_bert_input_phrase(neg_act_para_names_str,
                                                                          max_seq_len['bert_para_names_str'])
 
@@ -132,10 +133,15 @@ def get_act_data_tuple_vec(q_phrase, action_tr_tup, vocab_to_id, p_DB):
         bert_in_neg_list.append(bert_in_neg)
         ''' ==========================='''
 
-    data_vec_tup = (q_vec, pos_action_name_vec, pos_action_para_names_vec, pos_action_para_dom_vec,
-                     neg_act_list_vec, bert_in_pos, bert_in_neg_list)
-
-    return data_vec_tup
+    return (
+        q_vec,
+        pos_action_name_vec,
+        pos_action_para_names_vec,
+        pos_action_para_dom_vec,
+        neg_act_list_vec,
+        bert_in_pos,
+        bert_in_neg_list,
+    )
 
 
 def get_para_data_tuple_vec_tagging(q_phrase, para_tr_tup, vocab_to_id):
@@ -156,10 +162,17 @@ def get_para_data_tuple_vec_tagging(q_phrase, para_tr_tup, vocab_to_id):
     bert_in_tagging, gold_label_ids = get_bert_input_query_para_name(q_phrase, pos_para_name,
                                                       pos_para_val_sample, max_seq_len['bert_query_para_name'])
 
-    para_tup = (q_vec, pos_para_type, pos_para_name_vec,
-                label_vec, q_len, q_char_vec, q_ent_vec, bert_in_tagging, gold_label_ids)
-
-    return para_tup
+    return (
+        q_vec,
+        pos_para_type,
+        pos_para_name_vec,
+        label_vec,
+        q_len,
+        q_char_vec,
+        q_ent_vec,
+        bert_in_tagging,
+        gold_label_ids,
+    )
 
 
 def get_para_data_tuple_vec_matching(para_tr_tup, vocab_to_id):
@@ -207,7 +220,15 @@ def get_para_data_tuple_vec_matching(para_tr_tup, vocab_to_id):
         neg_para_bert_input_list.append(bert_in_neg_para_val)
         ''' ======================== '''
 
-    para_tup = (q_para_val_vec, pos_para_type, pos_para_name_vec, pos_para_val_vec, pos_val_ext_match_score,
-                neg_para_val_list_vec, pos_para_bert_input, neg_para_bert_input_list,
-                q_para_val_vec_char, pos_para_val_vec_char)
-    return para_tup
+    return (
+        q_para_val_vec,
+        pos_para_type,
+        pos_para_name_vec,
+        pos_para_val_vec,
+        pos_val_ext_match_score,
+        neg_para_val_list_vec,
+        pos_para_bert_input,
+        neg_para_bert_input_list,
+        q_para_val_vec_char,
+        pos_para_val_vec_char,
+    )

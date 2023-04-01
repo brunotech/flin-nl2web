@@ -86,16 +86,24 @@ def cnn_encoding_layer(dropout, encoder_embed_input, args, embed_dim, sequence_l
     with tf.variable_scope(layer_name, reuse=tf.AUTO_REUSE):
         # Create a convolution + maxpool layer for each filter size
         pooled_outputs = []
-        for i, filter_size in enumerate(filter_sizes):
-            with tf.name_scope("conv-maxpool-%s" % filter_size):
+        for filter_size in filter_sizes:
+            with tf.name_scope(f"conv-maxpool-{filter_size}"):
                 filter_pool_size = (sequence_length - filter_size + 1)
 
                 # Convolution Layer
                 filter_shape = [filter_size, embed_dim, 1, num_filters]  # 2 x 300 x 1 x 64
-                conv_W = tf.get_variable("conv_W_%s" % filter_size, shape=filter_shape,
-                                         initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
-                conv_b = tf.get_variable("conv_b_%s" % filter_size, shape=[num_filters],
-                                         initializer=tf.zeros_initializer(), trainable=True)
+                conv_W = tf.get_variable(
+                    f"conv_W_{filter_size}",
+                    shape=filter_shape,
+                    initializer=tf.contrib.layers.xavier_initializer(),
+                    trainable=True,
+                )
+                conv_b = tf.get_variable(
+                    f"conv_b_{filter_size}",
+                    shape=[num_filters],
+                    initializer=tf.zeros_initializer(),
+                    trainable=True,
+                )
 
                 conv = tf.nn.conv2d(input=encoder_embed_input_expanded,
                                     filter=conv_W,

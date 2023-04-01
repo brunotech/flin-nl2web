@@ -6,18 +6,17 @@ from code.train_data_preprocessing.preprocess_util import lemmatizer, get_candid
 
 
 def get_all_available_actions(activity_name, node_DB, para_DB):
-    action_desc_set = set()
     action_names = set()
-    for action_desc in node_DB['action']:
-        if action_desc.startswith(activity_name+'->'):
-            action_desc_set.add(action_desc)
-
-    if len(action_desc_set) > 0:
+    if action_desc_set := {
+        action_desc
+        for action_desc in node_DB['action']
+        if action_desc.startswith(f'{activity_name}->')
+    }:
         for action_desc in action_desc_set:
-              for action_id in node_DB['action'][action_desc]:
-                  for para in para_DB[action_id]:
-                      if para['Type'] == 'ACTION':
-                          action_names.add(action_desc +'#'+ para['description'])
+            for action_id in node_DB['action'][action_desc]:
+                for para in para_DB[action_id]:
+                    if para['Type'] == 'ACTION':
+                        action_names.add(f'{action_desc}#' + para['description'])
     return action_names
 
 
@@ -82,7 +81,7 @@ def generate_pos_neg_examples(data, vocab_to_id, id_to_vocab, node_DB, para_DB, 
 
                 neg_action_set = all_actions.difference(all_pos_actions)
                 if len(neg_action_set) == 0:
-                    neg_action_set.add(curr_node + '#null_action')
+                    neg_action_set.add(f'{curr_node}#null_action')
 
                 for neg_action in neg_action_set:
                     neg_action_name = neg_action.split("#")[1].strip()
@@ -92,10 +91,11 @@ def generate_pos_neg_examples(data, vocab_to_id, id_to_vocab, node_DB, para_DB, 
 
                     neg_para_name_set = []
                     if neg_action in p_DB:
-                        for neg_para_name, _ in p_DB[neg_action].items():
-                            neg_para_name_set.append(neg_para_name)
-
-                    if len(neg_para_name_set) == 0:
+                        neg_para_name_set.extend(
+                            neg_para_name
+                            for neg_para_name, _ in p_DB[neg_action].items()
+                        )
+                    if not neg_para_name_set:
                         neg_para_name_set.append('null_para')
 
                     # update vocab
@@ -116,7 +116,12 @@ def generate_pos_neg_examples(data, vocab_to_id, id_to_vocab, node_DB, para_DB, 
                     if pos_para_type == 0:
                         all_fixed_val = get_candidate_query_phrases(q_inst)   # get candidate noun phrases
                     else:
-                        all_fixed_val = set([fixed_val for fixed_val, _, para_type in p_DB[pos_action][pos_para_name]])
+                        all_fixed_val = {
+                            fixed_val
+                            for fixed_val, _, para_type in p_DB[pos_action][
+                                pos_para_name
+                            ]
+                        }
 
                     neg_para_val_set = all_fixed_val.difference({pos_para_val})
 
@@ -181,6 +186,6 @@ def prepare_vectorized_dataset(trace_id, dataset_dump):
     data_dump = (train, valid, vocab_to_id, id_to_vocab)
 
     print(os.getcwd())
-    with open('../resource/'+ str(trace_id) + '_data_vec_dump.pickle', 'wb') as f:
+    with open(f'../resource/{str(trace_id)}_data_vec_dump.pickle', 'wb') as f:
         # Pickle the 'data' dictionary using the highest protocol available.
         pickle.dump(data_dump, f)

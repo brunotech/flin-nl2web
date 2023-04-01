@@ -39,10 +39,14 @@ def get_vectorized_bert_input_phrase(input_sentence, bert_seq_len):
 def isSublist(pattern, mylist):
     if len(pattern) > len(mylist):
         return (0, 0)
-    for i in range(len(mylist) - len(pattern) + 1):
-        if mylist[i:i+len(pattern)] == pattern:
-            return (i, i+len(pattern)-1)
-    return (0, 0)
+    return next(
+        (
+            (i, i + len(pattern) - 1)
+            for i in range(len(mylist) - len(pattern) + 1)
+            if mylist[i : i + len(pattern)] == pattern
+        ),
+        (0, 0),
+    )
 
 
 def get_bert_input_query_para_name(q_phrase, para_name, para_val_sample, bert_seq_len):
@@ -104,10 +108,7 @@ def get_bert_input_query_para_name_test(q_phrase, para_name, bert_seq_len):
     tokens.extend(q_tokens)
     tokens.append('[SEP]')
 
-    q_token_dict = []
-    for wd in q_phrase.split():
-        q_token_dict.append((wd, tokenizer.tokenize(wd)))
-
+    q_token_dict = [(wd, tokenizer.tokenize(wd)) for wd in q_phrase.split()]
     segment_ids.extend([1] * (len(q_tokens)+1))
 
     # convert to ids ...

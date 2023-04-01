@@ -35,9 +35,12 @@ def get_test_tuple_vec_act(q_vec, q_phrase, action_next, para_DB, para_dom, voca
 
                     if len(dom_set) > 0:
                         dom_sample = np.random.choice(list(dom_set), min(len(dom_set), max_no_dict['domain_size_per_para']), replace=False)
-                        for dom_val in dom_sample:
-                            action_para_dom_val_vec.append(get_vectorized_phrase(dom_val, vocab_to_id, max_seq_len['para_val']))
-
+                        action_para_dom_val_vec.extend(
+                            get_vectorized_phrase(
+                                dom_val, vocab_to_id, max_seq_len['para_val']
+                            )
+                            for dom_val in dom_sample
+                        )
                 action_para_dom_val_vec = pad_arr_seq(action_para_dom_val_vec, max_no_dict['domain_size_per_para'],
                                                       [0] * max_seq_len['para_val'])
                 action_para_dom_vec.append(action_para_dom_val_vec)
@@ -52,15 +55,20 @@ def get_test_tuple_vec_act(q_vec, q_phrase, action_next, para_DB, para_dom, voca
     bert_in_query = get_vectorized_bert_input_phrase(q_phrase, max_seq_len['bert_query'])
     bert_in_action_name = get_vectorized_bert_input_phrase(action_name, max_seq_len['bert_action_name'])
 
-    act_para_names_bert = ';'.join([para_name for para_name in para_name_set])
+    act_para_names_bert = ';'.join(list(para_name_set))
     bert_in_action_para_names = get_vectorized_bert_input_phrase(act_para_names_bert, max_seq_len['bert_para_names_str'])
 
     act_bert_input = (bert_in_query, bert_in_action_name, bert_in_action_para_names)
 
     ''' =========================== '''
 
-    data_vec_tup = (q_vec, action_name_vec, action_para_names_vec, action_para_dom_vec, act_bert_input)
-    return data_vec_tup
+    return (
+        q_vec,
+        action_name_vec,
+        action_para_names_vec,
+        action_para_dom_vec,
+        act_bert_input,
+    )
 
 
 def get_test_tuple_vec_para_tagging(q_vec, q_phrase, q_len, para_name, para_type, vocab_to_id):
@@ -76,10 +84,17 @@ def get_test_tuple_vec_para_tagging(q_vec, q_phrase, q_len, para_name, para_type
     para_bert_input, bert_in_tokens, q_token_dict = get_bert_input_query_para_name_test(q_phrase, para_name,
                                                                         max_seq_len['bert_query_para_name'])
 
-    para_tup = (q_vec, para_type, para_name_vec, q_len,
-                q_char_vec, q_ent_vec, para_bert_input, bert_in_tokens, q_token_dict)
-
-    return para_tup
+    return (
+        q_vec,
+        para_type,
+        para_name_vec,
+        q_len,
+        q_char_vec,
+        q_ent_vec,
+        para_bert_input,
+        bert_in_tokens,
+        q_token_dict,
+    )
 
 
 def get_test_tuple_vec_para_matching(q_para_phrase, para_name, para_type, para_val, vocab_to_id):
@@ -104,7 +119,13 @@ def get_test_tuple_vec_para_matching(q_para_phrase, para_name, para_type, para_v
     para_bert_input = (bert_in_para_name, bert_in_para_val)
     ''' ======================== '''
 
-    para_tup = (q_para_val_vec, para_type, para_name_vec, para_val_vec, para_val_ext_match_score,
-                para_bert_input, q_para_val_char_vec,  para_val_vec_char)
-
-    return para_tup
+    return (
+        q_para_val_vec,
+        para_type,
+        para_name_vec,
+        para_val_vec,
+        para_val_ext_match_score,
+        para_bert_input,
+        q_para_val_char_vec,
+        para_val_vec_char,
+    )

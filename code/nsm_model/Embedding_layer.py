@@ -48,9 +48,10 @@ def get_char_embeddings_phrase(dropout, phrase_in_char, char_embed_encoder,
 
     phrase_char_embs = char_rnn_encoding_layer(dropout, char_emb_inputs_2, embedding_dim, layer_name)  # 32*15 x 100
 
-    char_embs_out = tf.reshape(phrase_char_embs, (tf.shape(char_emb_inputs)[0],
-                                                           phrase_seq_len, embedding_dim))  # 32 x 15 x 100
-    return char_embs_out
+    return tf.reshape(
+        phrase_char_embs,
+        (tf.shape(char_emb_inputs)[0], phrase_seq_len, embedding_dim),
+    )
 
 
 def char_rnn_encoding_layer(dropout, char_encoder_embed_input, embed_dim, layer_name="char_rnn_encoding"):

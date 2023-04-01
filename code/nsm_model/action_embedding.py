@@ -17,7 +17,7 @@ def get_action_embedding(bert_module, word_embed_encoder, act_name, act_para_nam
                                          query_vec, query_states,  args, dropout, embed_dim, scope)
 
     # encode action parameter names  ...
-    if args['encoder_type'] == 'rnn_bi' or args['encoder_type'] == 'rnn_uni'  or args['encoder_type'] == 'cnn':
+    if args['encoder_type'] in ['rnn_bi', 'rnn_uni', 'cnn']:
         action_para_name_embs = encode_action_para_names(word_embed_encoder, act_para_names, args, dropout, embed_dim)    # 32 x 10 x 600
         action_para_name_vec = tf.reduce_mean(action_para_name_embs, axis=1)    # 32 x 600
     else:
@@ -31,7 +31,7 @@ def encode_action_name(bert_module, word_embed_encoder, action_name_in, bert_act
                        query_vec, query_states,  args, dropout, embed_dim, scope):
 
     # encode action name ...
-    if args['encoder_type'] == 'rnn_bi' or args['encoder_type'] == 'rnn_uni':
+    if args['encoder_type'] in ['rnn_bi', 'rnn_uni']:
         action_name_emb_inputs = tf.nn.embedding_lookup(word_embed_encoder, action_name_in)
         _, action_name_vec = rnn_encoding_layer(dropout, action_name_emb_inputs, args,
                                              embed_dim, 'rnn_encoding_act')  # 32 x 5 x 300 ---> 32 x 600
@@ -51,14 +51,18 @@ def encode_action_para_names(word_embed_encoder, action_para_in, args, dropout, 
                                     (tf.shape(action_para_embs_inputs)[0] * max_no_dict['max_no_para_per_action'],
                                      max_seq_len['para_name'], embed_dim))
 
-    if args['encoder_type'] == 'rnn_bi' or args['encoder_type'] == 'rnn_uni':
+    if args['encoder_type'] in ['rnn_bi', 'rnn_uni']:
         _, action_para_embs = rnn_encoding_layer(dropout, action_para_embs_inputs_2,
                                                  args, embed_dim, 'rnn_encoding_act')
     else:
         action_para_embs = cnn_encoding_layer(dropout, action_para_embs_inputs_2, args, embed_dim,
                                               max_seq_len['para_name'])
 
-    action_para_name_embs = tf.reshape(action_para_embs, (tf.shape(action_para_embs_inputs)[0],
-                                                     max_no_dict['max_no_para_per_action'],
-                                                     tf.shape(action_para_embs)[1]))  # 32 x 10 x 600
-    return action_para_name_embs
+    return tf.reshape(
+        action_para_embs,
+        (
+            tf.shape(action_para_embs_inputs)[0],
+            max_no_dict['max_no_para_per_action'],
+            tf.shape(action_para_embs)[1],
+        ),
+    )

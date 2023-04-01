@@ -11,13 +11,21 @@ from tensorflow.contrib.layers.python.layers import initializers
 
 
 def weight_variable(shape, name):
-    return tf.get_variable(name+'_W', shape=shape,
-                             dtype=tf.float32, initializer=initializers.xavier_initializer())
+    return tf.get_variable(
+        f'{name}_W',
+        shape=shape,
+        dtype=tf.float32,
+        initializer=initializers.xavier_initializer(),
+    )
 
 
 def bias_variable(out_dim, name):
-    return tf.get_variable(name +'_b', shape=[out_dim],
-                           dtype=tf.float32, initializer=tf.zeros_initializer())
+    return tf.get_variable(
+        f'{name}_b',
+        shape=[out_dim],
+        dtype=tf.float32,
+        initializer=tf.zeros_initializer(),
+    )
 
 
 class Neural_Semantic_Matching(object):
@@ -173,9 +181,13 @@ class Neural_Semantic_Matching(object):
 
         act_semantic_vec2 = tf.concat([act_name_vec, act_para_vec], axis=1)
         act_semantic_vec2 = tf.reshape(act_semantic_vec2, (tf.shape(act_semantic_vec2)[0], self.embedding_dim * 4))  # 32 x 1200
-        act_semantic_vec = tf.contrib.layers.fully_connected(act_semantic_vec2, self.embedding_dim * 2,
-                                                        activation_fn=tf.nn.tanh, scope=scope2, reuse=tf.AUTO_REUSE)  # 32 x 600
-        return act_semantic_vec
+        return tf.contrib.layers.fully_connected(
+            act_semantic_vec2,
+            self.embedding_dim * 2,
+            activation_fn=tf.nn.tanh,
+            scope=scope2,
+            reuse=tf.AUTO_REUSE,
+        )
 
     def build_action_matching_network(self):
         '''

@@ -192,6 +192,6 @@ def train_and_evaluate(sess, args, model, train, valid, saver, model_path, batch
         print('.... Training Complete .....')
         print('saving model ..')
         train_trace_id = args['train_trace_id']
-        save_model(sess, saver, str(train_trace_id) + '_model', model_path)
+        save_model(sess, saver, f'{str(train_trace_id)}_model', model_path)
 
     print("Finish.")
